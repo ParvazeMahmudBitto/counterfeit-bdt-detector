@@ -537,134 +537,168 @@ if st.session_state.get(
 
 
 
-
 # -----------------------------------
-# Display History (Fixed Responsive HTML Table + Delete Buttons)
+# Display History
 # -----------------------------------
 
 if len(st.session_state.history) > 0:
+
+
 
     history_df = pd.DataFrame(
         st.session_state.history
     )
 
 
-    st.markdown(
-        """
-        <style>
 
-        .history-scroll {
-            overflow-x:auto;
-            width:100%;
-        }
+    # Table Header
 
-        .history-table {
-            width:100%;
-            min-width:850px;
-            border-collapse:collapse;
-            font-size:15px;
-        }
-
-        .history-table th {
-            text-align:left;
-            padding:12px;
-            border-bottom:1px solid #555;
-            white-space:nowrap;
-        }
-
-        .history-table td {
-            padding:12px;
-            border-bottom:1px solid #333;
-            white-space:nowrap;
-        }
-
-        </style>
-        """,
-        unsafe_allow_html=True
+    h1,h2,h3,h4,h5,h6 = st.columns(
+        [1,3,1,2,2,1]
     )
 
 
-    # Table header
-    st.markdown(
-        """
-        <div class="history-scroll">
-        <table class="history-table">
-        <tr>
-            <th>No.</th>
-            <th>Image</th>
-            <th>Result</th>
-            <th>Confidence</th>
-            <th>Date Time</th>
-            <th>Action</th>
-        </tr>
-        </table>
-        </div>
-        """,
-        unsafe_allow_html=True
+    h1.write(
+        "No."
     )
 
 
-    # Rows with hidden action alignment
-    for index, row in history_df.iterrows():
+    h2.write(
+        "Image"
+    )
 
-        cols = st.columns(
-            [0.7, 3, 1.5, 1.5, 2, 0.8]
-        )
 
-        cols[0].write(index + 1)
+    h3.write(
+        "Result"
+    )
 
-        cols[1].write(
-            row["image_name"]
-        )
 
-        if row["result"] == "Fake":
-            cols[2].error("Fake")
-        else:
-            cols[2].success("Real")
+    h4.write(
+        "Confidence"
+    )
 
-        cols[3].write(
-            f'{row["confidence"]:.2f}%'
-        )
 
-        cols[4].write(
-            row["date_time"]
-        )
+    h5.write(
+        "Date Time"
+    )
 
-        if cols[5].button(
-            "🗑️",
-            key=f"history_delete_{index}"
-        ):
 
-            st.session_state.history.pop(index)
+    h6.write(
+        "Action"
+    )
 
-            st.rerun()
 
 
     st.divider()
 
 
+
+    for index,row in history_df.iterrows():
+
+
+
+        c1,c2,c3,c4,c5,c6 = st.columns(
+            [1,3,1,2,2,1]
+        )
+
+
+
+        c1.write(
+            index + 1
+        )
+
+
+
+        c2.write(
+            row["image_name"]
+        )
+
+
+
+        c3.write(
+            row["result"]
+        )
+
+
+
+        c4.write(
+            f'{row["confidence"]:.2f}%'
+        )
+
+
+
+        c5.write(
+            row["date_time"]
+        )
+
+
+
+        if c6.button(
+            "🗑️",
+            key=f"delete_{index}"
+        ):
+
+
+
+            st.session_state.history.pop(
+                index
+            )
+
+
+            st.success(
+                "Record deleted successfully"
+            )
+
+
+            st.rerun()
+
+
+
+
+
+    # -----------------------------------
+    # CSV Download
+    # -----------------------------------
+
+
     csv_df = history_df.copy()
+
+
 
     csv_df.insert(
         0,
         "No.",
-        range(1, len(csv_df)+1)
+        range(
+            1,
+            len(csv_df)+1
+        )
     )
+
+
+
+    csv = csv_df.to_csv(
+        index=False
+    )
+
 
 
     st.download_button(
         "⬇️ Download History CSV",
-        csv_df.to_csv(index=False),
+        csv,
         "detection_history.csv",
         "text/csv"
     )
 
 
+
 else:
+
 
     st.info(
         "No detection history available"
     )
+
+
 
 
 
