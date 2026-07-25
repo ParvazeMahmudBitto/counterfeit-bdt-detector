@@ -608,7 +608,7 @@ if len(st.session_state.history) > 0:
     for index, row in history_df.iterrows():
 
         cols = st.columns(
-            [0.7, 3, 1.2, 1.5, 2, 0.8]
+            [0.7, 3, 1.5, 1.5, 2, 0.8]
         )
 
         cols[0].write(index + 1)
@@ -618,9 +618,16 @@ if len(st.session_state.history) > 0:
         )
 
         if row["result"] == "Fake":
-            cols[2].error("Fake")
-        else:
-            cols[2].success("Real")
+         cols[2].markdown(
+        "<span style='color:#ff4b4b;'>Fake</span>",
+        unsafe_allow_html=True
+    )
+
+    else:
+        cols[2].markdown(
+        "<span style='color:#00d26a;'>Real</span>",
+        unsafe_allow_html=True
+    )
 
         cols[3].write(
             f'{row["confidence"]:.2f}%'
