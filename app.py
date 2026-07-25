@@ -539,77 +539,108 @@ if st.session_state.get(
 
 
 # -----------------------------------
-# Display History (Responsive Table + Delete)
+# Display History (Fixed Responsive HTML Table + Delete Buttons)
 # -----------------------------------
 
 if len(st.session_state.history) > 0:
-
-    st.markdown(
-        """
-        <style>
-        .history-wrapper{
-            overflow-x:auto;
-            width:100%;
-        }
-
-        .history-table{
-            width:100%;
-            min-width:750px;
-            border-collapse:collapse;
-            font-size:15px;
-        }
-
-        .history-table th,
-        .history-table td{
-            padding:12px;
-            border-bottom:1px solid #555;
-            white-space:nowrap;
-            text-align:left;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
 
     history_df = pd.DataFrame(
         st.session_state.history
     )
 
-    h1,h2,h3,h4,h5,h6 = st.columns([1,3,1,2,2,1])
 
-    h1.write("No.")
-    h2.write("Image")
-    h3.write("Result")
-    h4.write("Confidence")
-    h5.write("Date Time")
-    h6.write("Action")
+    st.markdown(
+        """
+        <style>
 
-    st.divider()
+        .history-scroll {
+            overflow-x:auto;
+            width:100%;
+        }
 
-    for index,row in history_df.iterrows():
+        .history-table {
+            width:100%;
+            min-width:850px;
+            border-collapse:collapse;
+            font-size:15px;
+        }
 
-        c1,c2,c3,c4,c5,c6 = st.columns([1,3,1,2,2,1])
+        .history-table th {
+            text-align:left;
+            padding:12px;
+            border-bottom:1px solid #555;
+            white-space:nowrap;
+        }
 
-        c1.write(index+1)
-        c2.write(row["image_name"])
+        .history-table td {
+            padding:12px;
+            border-bottom:1px solid #333;
+            white-space:nowrap;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # Table header
+    st.markdown(
+        """
+        <div class="history-scroll">
+        <table class="history-table">
+        <tr>
+            <th>No.</th>
+            <th>Image</th>
+            <th>Result</th>
+            <th>Confidence</th>
+            <th>Date Time</th>
+            <th>Action</th>
+        </tr>
+        </table>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # Rows with hidden action alignment
+    for index, row in history_df.iterrows():
+
+        cols = st.columns(
+            [0.7, 3, 1.2, 1.5, 2, 0.8]
+        )
+
+        cols[0].write(index + 1)
+
+        cols[1].write(
+            row["image_name"]
+        )
 
         if row["result"] == "Fake":
-            c3.error("Fake")
+            cols[2].error("Fake")
         else:
-            c3.success("Real")
+            cols[2].success("Real")
 
-        c4.write(f'{row["confidence"]:.2f}%')
-        c5.write(row["date_time"])
+        cols[3].write(
+            f'{row["confidence"]:.2f}%'
+        )
 
-        if c6.button("🗑️", key=f"delete_{index}"):
+        cols[4].write(
+            row["date_time"]
+        )
+
+        if cols[5].button(
+            "🗑️",
+            key=f"history_delete_{index}"
+        ):
 
             st.session_state.history.pop(index)
 
-            st.success(
-                "Record deleted successfully"
-            )
-
             st.rerun()
+
+
+    st.divider()
 
 
     csv_df = history_df.copy()
@@ -620,14 +651,14 @@ if len(st.session_state.history) > 0:
         range(1, len(csv_df)+1)
     )
 
-    csv = csv_df.to_csv(index=False)
 
     st.download_button(
         "⬇️ Download History CSV",
-        csv,
+        csv_df.to_csv(index=False),
         "detection_history.csv",
         "text/csv"
     )
+
 
 else:
 
