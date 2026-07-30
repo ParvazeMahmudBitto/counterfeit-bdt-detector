@@ -455,7 +455,7 @@ if uploaded_file is not None:
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
-            
+            attention_text = fake_features
 
 
         st.info(attention_text)
