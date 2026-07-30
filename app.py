@@ -84,70 +84,54 @@ backbone = load_backbone()
 # Proper Grad-CAM Function
 # -----------------------------------
 
-def make_gradcam_heatmap(img_array, model):
+def make_gradcam_heatmap(
+        img_array,
+        backbone
+):
 
-    try:
-        # Find last convolutional layer from backbone/model
-        conv_layer = None
-        for layer in reversed(model.layers):
-            if isinstance(layer, tf.keras.layers.Conv2D):
-                conv_layer = layer
-                break
-
-        if conv_layer is None:
-            return None
-
-        grad_model = tf.keras.models.Model(
-            inputs=model.inputs,
-            outputs=[conv_layer.output, model.output]
-        )
-
-        with tf.GradientTape() as tape:
-
-            conv_output, predictions = grad_model(
-                img_array
-            )
-
-            # Binary classifier: use predicted class score
-            if predictions.shape[-1] == 1:
-                loss = predictions[:, 0]
-            else:
-                loss = predictions[:, tf.argmax(predictions[0])]
-
-        grads = tape.gradient(
-            loss,
-            conv_output
-        )
-
-        pooled_grads = tf.reduce_mean(
-            grads,
-            axis=(0, 1, 2)
-        )
-
-        conv_output = conv_output[0]
-
-        heatmap = conv_output @ pooled_grads[..., tf.newaxis]
-
-        heatmap = tf.squeeze(
-            heatmap
-        )
-
-        heatmap = tf.maximum(
-            heatmap,
-            0
-        )
-
-        max_val = tf.reduce_max(
-            heatmap
-        )
-
-        if float(max_val) > 0:
-            heatmap = heatmap / max_val
-
-        return heatmap.numpy()
-
-    except Exception:
+    if backbone is None:
         return None
+
+
+    last_conv_layer = backbone.get_layer(
+        "top_conv"
+    )
+
+
+    grad_model = tf.keras.models.Model(
+        inputs=backbone.inputs,
+        outputs=last_conv_layer.output
+    )
+
+
+    with tf.GradientTape() as tape:
+
+        conv_output = grad_model(
+            img_array
+        )
+
+
+    heatmap = tf.reduce_mean(
+        conv_output,
+        axis=-1
+    )
+
+
+    heatmap = heatmap[0]
+
+
+    heatmap = tf.maximum(
+        heatmap,
+        0
+    )
+
+
+    heatmap = heatmap / tf.reduce_max(
+        heatmap
+    )
+
+
+    return heatmap.numpy()
 
 
 # -----------------------------------
@@ -389,34 +373,17 @@ if uploaded_file is not None:
 
         heatmap = make_gradcam_heatmap(
             img_array,
-            model
+            backbone
         )
 
 
-        # Validate Grad-CAM output before resizing
-        if heatmap is None or not isinstance(heatmap, np.ndarray) or heatmap.size == 0:
-
-            st.warning(
-                "Grad-CAM could not be generated for this image."
+        heatmap = cv2.resize(
+            heatmap,
+            (
+                image.size[0],
+                image.size[1]
             )
-
-            heatmap = np.zeros(
-                (
-                    image.size[1],
-                    image.size[0]
-                ),
-                dtype=np.float32
-            )
-
-        else:
-
-            heatmap = cv2.resize(
-                heatmap,
-                (
-                    image.size[0],
-                    image.size[1]
-                )
-            )
+        )
 
 
         # -----------------------------------
@@ -428,6 +395,12 @@ if uploaded_file is not None:
         if np.max(heatmap) != 0:
             heatmap = heatmap / np.max(heatmap)
 
+        heatmap = apply_security_region_mask(
+            heatmap,
+            image.size[0],
+            image.size[1]
+        )
+
         heatmap[heatmap < 0.35] = 0
 
         heatmap_uint8 = np.uint8(255 * heatmap)
@@ -437,14 +410,7 @@ if uploaded_file is not None:
             cv2.COLORMAP_TURBO
         )
 
-        # -----------------------------------
-        # Dynamic CNN Attention Explanation
-        # -----------------------------------
-
-        original_img = np.array(
-            image.convert("RGB")
-        )
-
+        original_img = np.array(image.convert("RGB"))
 
         superimposed_img = cv2.addWeighted(
             original_img,
@@ -454,28 +420,19 @@ if uploaded_file is not None:
             0
         )
 
-
         st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
-
 
         col1, col2 = st.columns(2)
 
-
         with col1:
-            st.image(
-                original_img,
-                caption="Original Banknote",
-                use_container_width=True
-            )
-
+            st.image(original_img, caption="Original Banknote", use_container_width=True)
 
         with col2:
-            st.image(
-                superimposed_img,
-                caption="Security Feature Focused Grad-CAM",
-                use_container_width=True
-            )
+            st.image(superimposed_img, caption="Security Feature Focused Grad-CAM", use_container_width=True)
 
+        # -----------------------------------
+        # Dynamic CNN Attention Explanation
+        # -----------------------------------
 
         if result == "Real":
 
@@ -487,9 +444,9 @@ if uploaded_file is not None:
                 "✓ Watermark (Mujib Portrait)"
             )
 
-
         else:
 
+            # Default counterfeit indicators
             fake_features = (
                 "CNN attention focused on security regions:\n\n"
                 "✓ Unclear Flower print\n"
@@ -498,39 +455,20 @@ if uploaded_file is not None:
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
-
+            # Simple overlap indicator based on image intensity/texture
             gray_img = cv2.cvtColor(
                 original_img,
                 cv2.COLOR_RGB2GRAY
             )
 
-
-            flower_logo_region = gray_img[
-                int(gray_img.shape[0]*0.25):int(gray_img.shape[0]*0.60),
-                int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
-            ]
-
-
-            edges = cv2.Canny(
-                flower_logo_region,
-                50,
-                150
+            overlap_score = np.std(
+                gray_img[
+                    int(gray_img.shape[0]*0.30):int(gray_img.shape[0]*0.60),
+                    int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
+                ]
             )
 
-
-            edge_density = np.mean(edges > 0)
-
-            texture_variance = np.var(
-                flower_logo_region
-            )
-
-
-            # Overlap is reported only when a strong abnormal merge is detected.
-            # Otherwise keep the standard counterfeit feature explanation.
-            if (
-                edge_density < 0.035
-                and texture_variance < 80
-            ):
+            if overlap_score < 18:
 
                 fake_features = (
                     "CNN attention focused on security regions:\n\n"
@@ -539,18 +477,16 @@ if uploaded_file is not None:
                     "✓ Distorted Portrait Watermark (Mujib Portrait)"
                 )
 
-
             attention_text = fake_features
 
 
         st.info(attention_text)
-
         
         
         
                 
         # Save to current session only
-    if result is not None:
+        if result is not None:
 
             st.session_state.history.append(
                 {
