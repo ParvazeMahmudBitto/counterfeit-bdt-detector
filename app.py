@@ -449,9 +449,8 @@ if uploaded_file is not None:
             # Default counterfeit indicators
             fake_features = (
                 "CNN attention focused on security regions:\n\n"
+                "✓ Overlapped Bangladesh Bank logo and Flower print\n"
                 "✓ Unclear Flower print\n"
-                "✓ Blur Bangladesh Bank logo (Watermark)\n"
-                "✓ Font inconsistency Watermark text (1000)\n"
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
@@ -472,7 +471,8 @@ if uploaded_file is not None:
 
                 fake_features = (
                     "CNN attention focused on security regions:\n\n"
-                    "✓ Overlapped Bangladesh Bank logo and Flower print\n"
+                    "✓ Unclear Flower print\n"
+                    "✓ Blur Bangladesh Bank logo (Watermark)\n"
                     "✓ Font inconsistency Watermark text (1000)\n"
                     "✓ Distorted Portrait Watermark (Mujib Portrait)"
                 )
