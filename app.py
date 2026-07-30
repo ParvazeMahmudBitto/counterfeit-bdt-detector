@@ -446,47 +446,81 @@ if uploaded_file is not None:
 
         else:
 
-            # Default counterfeit indicators
-            fake_features = (
-                "CNN attention focused on security regions:\n\n"
-                "✓ Overlapped Bangladesh Bank logo and Flower print\n"
-                "✓ Unclear Flower print\n"
-                "✓ Distorted Portrait Watermark (Mujib Portrait)"
-            )
+            else:
 
-            # Simple overlap indicator based on image intensity/texture
-            gray_img = cv2.cvtColor(
-                original_img,
-                cv2.COLOR_RGB2GRAY
-            )
+    # -----------------------------------
+    # Fake Note Security Feature Explanation
+    # -----------------------------------
 
-            overlap_score = np.std(
-                gray_img[
-                    int(gray_img.shape[0]*0.30):int(gray_img.shape[0]*0.60),
-                    int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
-                ]
-            )
-
-            if overlap_score < 18:
-
-                fake_features = (
-                    "CNN attention focused on security regions:\n\n"
-                    "✓ Unclear Flower print\n"
-                    "✓ Blur Bangladesh Bank logo (Watermark)\n"
-                    "✓ Font inconsistency Watermark text (1000)\n"
-                    "✓ Distorted Portrait Watermark (Mujib Portrait)"
-                )
-
-            attention_text = fake_features
+    # Default fake indicators
+    fake_features = (
+        "CNN attention focused on security regions:\n\n"
+        "✓ Unclear Flower print\n"
+        "✓ Blur Bangladesh Bank logo (Watermark)\n"
+        "✓ Font inconsistency Watermark text (1000)\n"
+        "✓ Distorted Portrait Watermark (Mujib Portrait)"
+    )
 
 
-        st.info(attention_text)
+    # -----------------------------------
+    # Flower + Bangladesh Bank Logo Overlap Detection
+    # -----------------------------------
+
+    gray_img = cv2.cvtColor(
+        original_img,
+        cv2.COLOR_RGB2GRAY
+    )
+
+
+    # Crop flower + logo security region
+    flower_logo_region = gray_img[
+        int(gray_img.shape[0]*0.25):int(gray_img.shape[0]*0.60),
+        int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
+    ]
+
+
+    # Edge and texture analysis
+    edges = cv2.Canny(
+        flower_logo_region,
+        50,
+        150
+    )
+
+
+    edge_density = np.mean(
+        edges > 0
+    )
+
+
+    texture_variance = np.var(
+        flower_logo_region
+    )
+
+
+    # Only strong abnormal merging will trigger overlap
+    if (
+        edge_density < 0.06
+        and texture_variance < 120
+    ):
+
+        fake_features = (
+            "CNN attention focused on security regions:\n\n"
+            "✓ Overlapped Bangladesh Bank logo and Flower print\n"
+            "✓ Font inconsistency Watermark text (1000)\n"
+            "✓ Distorted Portrait Watermark (Mujib Portrait)"
+        )
+
+
+    attention_text = fake_features
+
+
+    st.info(attention_text)
         
         
         
                 
         # Save to current session only
-        if result is not None:
+    if result is not None:
 
             st.session_state.history.append(
                 {
