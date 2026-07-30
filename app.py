@@ -449,9 +449,9 @@ if uploaded_file is not None:
             # Default counterfeit indicators
             fake_features = (
                 "CNN attention focused on security regions:\n\n"
-                "✓ Unclear Flower print\n\n"
-                "✓ Blur Bangladesh Bank logo (Watermark)\n\n"
-                "✓ Font inconsistency Watermark text (1000)\n\n"
+                "✓ Unclear Flower print\n"
+                "✓ Blur Bangladesh Bank logo (Watermark)\n"
+                "✓ Font inconsistency Watermark text (1000)\n"
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
