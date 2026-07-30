@@ -139,21 +139,45 @@ def make_gradcam_heatmap(
 # -----------------------------------
 
 def apply_security_region_mask(heatmap, width, height):
+
     mask = np.zeros((height, width), dtype=np.float32)
 
-    cv2.rectangle(mask,
-                  (int(width*0.45), int(height*0.20)),
-                  (int(width*0.78), int(height*0.72)), 1, -1)
+    # Flower print + Bangladesh Bank logo watermark
+    cv2.rectangle(
+        mask,
+        (int(width*0.08), int(height*0.30)),
+        (int(width*0.38), int(height*0.62)),
+        1,
+        -1
+    )
 
-    cv2.rectangle(mask,
-                  (int(width*0.08), int(height*0.30)),
-                  (int(width*0.38), int(height*0.62)), 1, -1)
+    # Mujib portrait watermark
+    cv2.rectangle(
+        mask,
+        (int(width*0.45), int(height*0.20)),
+        (int(width*0.78), int(height*0.72)),
+        1,
+        -1
+    )
 
-    cv2.rectangle(mask,
-                  (int(width*0.38), int(height*0.68)),
-                  (int(width*0.80), int(height*0.88)), 1, -1)
+    # Watermark text (1000)
+    cv2.rectangle(
+        mask,
+        (int(width*0.38), int(height*0.68)),
+        (int(width*0.80), int(height*0.88)),
+        1,
+        -1
+    )
+
+    # Soft edges
+    mask = cv2.GaussianBlur(
+        mask,
+        (51,51),
+        0
+    )
 
     return heatmap * mask
+
 
 
 # -----------------------------------
@@ -401,7 +425,15 @@ if uploaded_file is not None:
             image.size[1]
         )
 
-        heatmap[heatmap < 0.35] = 0
+        # Smooth feature-focused attention
+        heatmap = cv2.GaussianBlur(
+            heatmap,
+            (15,15),
+            0
+        )
+
+        if np.max(heatmap) > 0:
+            heatmap = heatmap / np.max(heatmap)
 
         heatmap_uint8 = np.uint8(255 * heatmap)
 
