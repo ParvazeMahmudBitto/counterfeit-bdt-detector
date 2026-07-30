@@ -446,14 +446,14 @@ if uploaded_file is not None:
 
         else:
 
-            else:
+        
 
     # -----------------------------------
     # Fake Note Security Feature Explanation
     # -----------------------------------
 
     # Default fake indicators
-    fake_features = (
+          fake_features = (
         "CNN attention focused on security regions:\n\n"
         "✓ Unclear Flower print\n"
         "✓ Blur Bangladesh Bank logo (Watermark)\n"
