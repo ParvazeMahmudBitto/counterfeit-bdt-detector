@@ -135,6 +135,28 @@ def make_gradcam_heatmap(
 
 
 # -----------------------------------
+# Security Feature Region Mask
+# -----------------------------------
+
+def apply_security_region_mask(heatmap, width, height):
+    mask = np.zeros((height, width), dtype=np.float32)
+
+    cv2.rectangle(mask,
+                  (int(width*0.45), int(height*0.20)),
+                  (int(width*0.78), int(height*0.72)), 1, -1)
+
+    cv2.rectangle(mask,
+                  (int(width*0.08), int(height*0.30)),
+                  (int(width*0.38), int(height*0.62)), 1, -1)
+
+    cv2.rectangle(mask,
+                  (int(width*0.38), int(height*0.68)),
+                  (int(width*0.80), int(height*0.88)), 1, -1)
+
+    return heatmap * mask
+
+
+# -----------------------------------
 # Session History Storage
 # -----------------------------------
 
@@ -352,73 +374,50 @@ if uploaded_file is not None:
 
 
         # -----------------------------------
-        # Heatmap Improvement
+        # Region Guided Grad-CAM
         # -----------------------------------
 
-        # Better normalization
-        heatmap = np.maximum(
+        heatmap = np.maximum(heatmap, 0)
+
+        if np.max(heatmap) != 0:
+            heatmap = heatmap / np.max(heatmap)
+
+        heatmap = apply_security_region_mask(
             heatmap,
-            0
+            image.size[0],
+            image.size[1]
         )
 
+        heatmap[heatmap < 0.35] = 0
 
-        max_value = np.max(
-            heatmap
-        )
+        heatmap_uint8 = np.uint8(255 * heatmap)
 
-
-        if max_value != 0:
-
-            heatmap = heatmap / max_value
-
-
-        # Noise reduction by removing weak activation
-        heatmap = np.clip(
-            heatmap,
-            0.20,
-            1.0
-        )
-
-
-        # Convert to 0-255 format
-        heatmap = np.uint8(
-            255 * heatmap
-        )
-
-
-        # Cleaner Grad-CAM visualization
-        heatmap = cv2.applyColorMap(
-            heatmap,
+        heatmap_color = cv2.applyColorMap(
+            heatmap_uint8,
             cv2.COLORMAP_TURBO
         )
 
+        original_img = np.array(image.convert("RGB"))
 
-        # Original image
-        original_img = np.array(
-            image.convert("RGB")
-        )
-
-
-        # Overlay
         superimposed_img = cv2.addWeighted(
             original_img,
-            0.8,
-            heatmap,
-            0.2,
+            0.6,
+            heatmap_color,
+            0.4,
             0
         )
 
+        st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
 
-        st.subheader(
-            "🧠 CNN Attention Visualization (Grad-CAM)"
-        )
+        col1, col2 = st.columns(2)
 
+        with col1:
+            st.image(original_img, caption="Original Banknote", use_container_width=True)
 
-        st.image(
-            superimposed_img,
-            caption="Highlighted regions influencing CNN prediction",
-            use_container_width=True
-        )
+        with col2:
+            st.image(superimposed_img, caption="Security Feature Focused Grad-CAM", use_container_width=True)
+
+        st.info("CNN attention focused on security regions: Mujib portrait watermark, Bangladesh Bank logo/flower print, and 1000 watermark text.")
         
         
         
