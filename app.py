@@ -84,54 +84,70 @@ backbone = load_backbone()
 # Proper Grad-CAM Function
 # -----------------------------------
 
-def make_gradcam_heatmap(
-        img_array,
-        backbone
-):
+def make_gradcam_heatmap(img_array, model):
 
-    if backbone is None:
-        return None
+    try:
+        # Find last convolutional layer from backbone/model
+        conv_layer = None
+        for layer in reversed(model.layers):
+            if isinstance(layer, tf.keras.layers.Conv2D):
+                conv_layer = layer
+                break
 
+        if conv_layer is None:
+            return None
 
-    last_conv_layer = backbone.get_layer(
-        "top_conv"
-    )
-
-
-    grad_model = tf.keras.models.Model(
-        inputs=backbone.inputs,
-        outputs=last_conv_layer.output
-    )
-
-
-    with tf.GradientTape() as tape:
-
-        conv_output = grad_model(
-            img_array
+        grad_model = tf.keras.models.Model(
+            inputs=model.inputs,
+            outputs=[conv_layer.output, model.output]
         )
 
+        with tf.GradientTape() as tape:
 
-    heatmap = tf.reduce_mean(
-        conv_output,
-        axis=-1
-    )
+            conv_output, predictions = grad_model(
+                img_array
+            )
 
+            # Binary classifier: use predicted class score
+            if predictions.shape[-1] == 1:
+                loss = predictions[:, 0]
+            else:
+                loss = predictions[:, tf.argmax(predictions[0])]
 
-    heatmap = heatmap[0]
+        grads = tape.gradient(
+            loss,
+            conv_output
+        )
 
+        pooled_grads = tf.reduce_mean(
+            grads,
+            axis=(0, 1, 2)
+        )
 
-    heatmap = tf.maximum(
-        heatmap,
-        0
-    )
+        conv_output = conv_output[0]
 
+        heatmap = conv_output @ pooled_grads[..., tf.newaxis]
 
-    heatmap = heatmap / tf.reduce_max(
-        heatmap
-    )
+        heatmap = tf.squeeze(
+            heatmap
+        )
 
+        heatmap = tf.maximum(
+            heatmap,
+            0
+        )
 
-    return heatmap.numpy()
+        max_val = tf.reduce_max(
+            heatmap
+        )
+
+        if max_val != 0:
+            heatmap /= max_val
+
+        return heatmap.numpy()
+
+    except Exception:
+        return None
 
 
 # -----------------------------------
@@ -373,7 +389,7 @@ if uploaded_file is not None:
 
         heatmap = make_gradcam_heatmap(
             img_array,
-            backbone
+            model
         )
 
 
@@ -394,12 +410,6 @@ if uploaded_file is not None:
 
         if np.max(heatmap) != 0:
             heatmap = heatmap / np.max(heatmap)
-
-        heatmap = apply_security_region_mask(
-            heatmap,
-            image.size[0],
-            image.size[1]
-        )
 
         heatmap[heatmap < 0.35] = 0
 
@@ -498,9 +508,11 @@ if uploaded_file is not None:
             )
 
 
+            # Overlap is reported only when a strong abnormal merge is detected.
+            # Otherwise keep the standard counterfeit feature explanation.
             if (
-                edge_density < 0.06
-                and texture_variance < 120
+                edge_density < 0.035
+                and texture_variance < 80
             ):
 
                 fake_features = (
