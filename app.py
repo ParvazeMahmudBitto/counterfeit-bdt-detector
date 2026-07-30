@@ -232,9 +232,18 @@ elif option == "Use Camera":
 if uploaded_file is not None:
 
 
+    from PIL import ImageOps
+
+
     image = Image.open(
-        uploaded_file
-    )
+    uploaded_file
+)
+
+
+# Fix camera/mobile image rotation
+    image = ImageOps.exif_transpose(
+     image
+)
 
 
     st.image(
@@ -245,9 +254,13 @@ if uploaded_file is not None:
 
 
 
-    img = image.convert(
-        "RGB"
+    image = ImageOps.exif_transpose(
+        image
+         ).convert(
+      "RGB"
     )
+
+    img = image.copy()
 
 
     img = img.resize(
