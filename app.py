@@ -139,48 +139,19 @@ def make_gradcam_heatmap(
 # -----------------------------------
 
 def apply_security_region_mask(heatmap, width, height):
-    """
-    Restrict Grad-CAM attention to important banknote security areas.
-    Smooth mask is used to avoid artificial rectangular blocks.
-    """
-
     mask = np.zeros((height, width), dtype=np.float32)
 
-    # Mujib portrait watermark
-    cv2.ellipse(
-        mask,
-        (int(width*0.62), int(height*0.45)),
-        (int(width*0.16), int(height*0.25)),
-        0,
-        0,
-        360,
-        1,
-        -1
-    )
+    cv2.rectangle(mask,
+                  (int(width*0.45), int(height*0.20)),
+                  (int(width*0.78), int(height*0.72)), 1, -1)
 
-    # Bangladesh Bank logo / flower print
-    cv2.ellipse(
-        mask,
-        (int(width*0.20), int(height*0.48)),
-        (int(width*0.16), int(height*0.14)),
-        0,
-        0,
-        360,
-        1,
-        -1
-    )
+    cv2.rectangle(mask,
+                  (int(width*0.08), int(height*0.30)),
+                  (int(width*0.38), int(height*0.62)), 1, -1)
 
-    # Watermark text 1000
-    cv2.rectangle(
-        mask,
-        (int(width*0.40), int(height*0.68)),
-        (int(width*0.72), int(height*0.82)),
-        1,
-        -1
-    )
-
-    # Smooth boundaries
-    mask = cv2.GaussianBlur(mask, (31,31), 0)
+    cv2.rectangle(mask,
+                  (int(width*0.38), int(height*0.68)),
+                  (int(width*0.80), int(height*0.88)), 1, -1)
 
     return heatmap * mask
 
@@ -484,21 +455,20 @@ if uploaded_file is not None:
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
-            # Detect possible overlapping logo and flower print area
+            # Simple overlap indicator based on image intensity/texture
             gray_img = cv2.cvtColor(
                 original_img,
                 cv2.COLOR_RGB2GRAY
             )
 
-            logo_flower_region = gray_img[
-                int(gray_img.shape[0]*0.30):int(gray_img.shape[0]*0.62),
-                int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.38)
-            ]
+            overlap_score = np.std(
+                gray_img[
+                    int(gray_img.shape[0]*0.30):int(gray_img.shape[0]*0.60),
+                    int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
+                ]
+            )
 
-            region_std = np.std(logo_flower_region)
-            region_mean = np.mean(logo_flower_region)
-
-            if region_std < 22 and region_mean < 170:
+            if overlap_score < 18:
 
                 fake_features = (
                     "CNN attention focused on security regions:\n\n"
