@@ -449,35 +449,13 @@ if uploaded_file is not None:
             # Default counterfeit indicators
             fake_features = (
                 "CNN attention focused on security regions:\n\n"
-                "✓ Unclear Flower print\n"
-                "✓ Blur Bangladesh Bank logo (Watermark)\n"
-                "✓ Font inconsistency Watermark text (1000)\n"
+                "✓ Unclear Flower print\n\n"
+                "✓ Blur Bangladesh Bank logo (Watermark)\n\n"
+                "✓ Font inconsistency Watermark text (1000)\n\n"
                 "✓ Distorted Portrait Watermark (Mujib Portrait)"
             )
 
-            # Simple overlap indicator based on image intensity/texture
-            gray_img = cv2.cvtColor(
-                original_img,
-                cv2.COLOR_RGB2GRAY
-            )
-
-            overlap_score = np.std(
-                gray_img[
-                    int(gray_img.shape[0]*0.30):int(gray_img.shape[0]*0.60),
-                    int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
-                ]
-            )
-
-            if overlap_score < 18:
-
-                fake_features = (
-                    "CNN attention focused on security regions:\n\n"
-                    "✓ Overlapped Bangladesh Bank logo and Flower print\n"
-                    "✓ Font inconsistency Watermark text (1000)\n"
-                    "✓ Distorted Portrait Watermark (Mujib Portrait)"
-                )
-
-            attention_text = fake_features
+            
 
 
         st.info(attention_text)
