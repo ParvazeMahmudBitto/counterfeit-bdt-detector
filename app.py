@@ -141,8 +141,8 @@ def make_gradcam_heatmap(img_array, model):
             heatmap
         )
 
-        if max_val != 0:
-            heatmap /= max_val
+        if float(max_val) > 0:
+            heatmap = heatmap / max_val
 
         return heatmap.numpy()
 
@@ -393,13 +393,30 @@ if uploaded_file is not None:
         )
 
 
-        heatmap = cv2.resize(
-            heatmap,
-            (
-                image.size[0],
-                image.size[1]
+        # Validate Grad-CAM output before resizing
+        if heatmap is None or not isinstance(heatmap, np.ndarray) or heatmap.size == 0:
+
+            st.warning(
+                "Grad-CAM could not be generated for this image."
             )
-        )
+
+            heatmap = np.zeros(
+                (
+                    image.size[1],
+                    image.size[0]
+                ),
+                dtype=np.float32
+            )
+
+        else:
+
+            heatmap = cv2.resize(
+                heatmap,
+                (
+                    image.size[0],
+                    image.size[1]
+                )
+            )
 
 
         # -----------------------------------
