@@ -411,29 +411,15 @@ if uploaded_file is not None:
         )
 
         # -----------------------------------
-# Dynamic CNN Attention Explanation
-# -----------------------------------
+        # Dynamic CNN Attention Explanation
+        # -----------------------------------
 
-# Prepare original image for security analysis
-original_img = np.array(
-    image.convert("RGB")
-)
+        original_img = np.array(
+            image.convert("RGB")
+        )
 
 
-if result == "Real":
-
-    attention_text = (
-        ...
-    )
-
-else:
-
-    gray_img = cv2.cvtColor(
-        original_img,
-        cv2.COLOR_RGB2GRAY
-    )
-
-    superimposed_img = cv2.addWeighted(
+        superimposed_img = cv2.addWeighted(
             original_img,
             0.6,
             heatmap_color,
@@ -441,21 +427,30 @@ else:
             0
         )
 
-    st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
 
-    col1, col2 = st.columns(2)
+        st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
 
-    with col1:
-            st.image(original_img, caption="Original Banknote", use_container_width=True)
 
-    with col2:
-            st.image(superimposed_img, caption="Security Feature Focused Grad-CAM", use_container_width=True)
+        col1, col2 = st.columns(2)
 
-        # -----------------------------------
-        # Dynamic CNN Attention Explanation
-        # -----------------------------------
 
-    if result == "Real":
+        with col1:
+            st.image(
+                original_img,
+                caption="Original Banknote",
+                use_container_width=True
+            )
+
+
+        with col2:
+            st.image(
+                superimposed_img,
+                caption="Security Feature Focused Grad-CAM",
+                use_container_width=True
+            )
+
+
+        if result == "Real":
 
             attention_text = (
                 "CNN attention focused on security regions:\n\n"
@@ -465,77 +460,62 @@ else:
                 "✓ Watermark (Mujib Portrait)"
             )
 
-    else:
 
-        
+        else:
 
-    # -----------------------------------
-    # Fake Note Security Feature Explanation
-    # -----------------------------------
-
-    # Default fake indicators
-          fake_features = (
-        "CNN attention focused on security regions:\n\n"
-        "✓ Unclear Flower print\n"
-        "✓ Blur Bangladesh Bank logo (Watermark)\n"
-        "✓ Font inconsistency Watermark text (1000)\n"
-        "✓ Distorted Portrait Watermark (Mujib Portrait)"
-    )
+            fake_features = (
+                "CNN attention focused on security regions:\n\n"
+                "✓ Unclear Flower print\n"
+                "✓ Blur Bangladesh Bank logo (Watermark)\n"
+                "✓ Font inconsistency Watermark text (1000)\n"
+                "✓ Distorted Portrait Watermark (Mujib Portrait)"
+            )
 
 
-    # -----------------------------------
-    # Flower + Bangladesh Bank Logo Overlap Detection
-    # -----------------------------------
-
-    gray_img = cv2.cvtColor(
-        original_img,
-        cv2.COLOR_RGB2GRAY
-    )
+            gray_img = cv2.cvtColor(
+                original_img,
+                cv2.COLOR_RGB2GRAY
+            )
 
 
-    # Crop flower + logo security region
-    flower_logo_region = gray_img[
-        int(gray_img.shape[0]*0.25):int(gray_img.shape[0]*0.60),
-        int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
-    ]
+            flower_logo_region = gray_img[
+                int(gray_img.shape[0]*0.25):int(gray_img.shape[0]*0.60),
+                int(gray_img.shape[1]*0.05):int(gray_img.shape[1]*0.35)
+            ]
 
 
-    # Edge and texture analysis
-    edges = cv2.Canny(
-        flower_logo_region,
-        50,
-        150
-    )
+            edges = cv2.Canny(
+                flower_logo_region,
+                50,
+                150
+            )
 
 
-    edge_density = np.mean(
-        edges > 0
-    )
+            edge_density = np.mean(edges > 0)
+
+            texture_variance = np.var(
+                flower_logo_region
+            )
 
 
-    texture_variance = np.var(
-        flower_logo_region
-    )
+            if (
+                edge_density < 0.06
+                and texture_variance < 120
+            ):
+
+                fake_features = (
+                    "CNN attention focused on security regions:\n\n"
+                    "✓ Overlapped Bangladesh Bank logo and Flower print\n"
+                    "✓ Font inconsistency Watermark text (1000)\n"
+                    "✓ Distorted Portrait Watermark (Mujib Portrait)"
+                )
 
 
-    # Only strong abnormal merging will trigger overlap
-    if (
-        edge_density < 0.06
-        and texture_variance < 120
-    ):
-
-        fake_features = (
-            "CNN attention focused on security regions:\n\n"
-            "✓ Overlapped Bangladesh Bank logo and Flower print\n"
-            "✓ Font inconsistency Watermark text (1000)\n"
-            "✓ Distorted Portrait Watermark (Mujib Portrait)"
-        )
+            attention_text = fake_features
 
 
-    attention_text = fake_features
+        st.info(attention_text)
 
-
-    st.info(attention_text)
         
         
         
