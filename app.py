@@ -410,9 +410,30 @@ if uploaded_file is not None:
             cv2.COLORMAP_TURBO
         )
 
-        original_img = np.array(image.convert("RGB"))
+        # -----------------------------------
+# Dynamic CNN Attention Explanation
+# -----------------------------------
 
-        superimposed_img = cv2.addWeighted(
+# Prepare original image for security analysis
+original_img = np.array(
+    image.convert("RGB")
+)
+
+
+if result == "Real":
+
+    attention_text = (
+        ...
+    )
+
+else:
+
+    gray_img = cv2.cvtColor(
+        original_img,
+        cv2.COLOR_RGB2GRAY
+    )
+
+    superimposed_img = cv2.addWeighted(
             original_img,
             0.6,
             heatmap_color,
@@ -420,21 +441,21 @@ if uploaded_file is not None:
             0
         )
 
-        st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
+    st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
+    with col1:
             st.image(original_img, caption="Original Banknote", use_container_width=True)
 
-        with col2:
+    with col2:
             st.image(superimposed_img, caption="Security Feature Focused Grad-CAM", use_container_width=True)
 
         # -----------------------------------
         # Dynamic CNN Attention Explanation
         # -----------------------------------
 
-        if result == "Real":
+    if result == "Real":
 
             attention_text = (
                 "CNN attention focused on security regions:\n\n"
@@ -444,7 +465,7 @@ if uploaded_file is not None:
                 "✓ Watermark (Mujib Portrait)"
             )
 
-        else:
+    else:
 
         
 
