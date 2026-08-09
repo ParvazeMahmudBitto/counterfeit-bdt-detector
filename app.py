@@ -495,7 +495,12 @@ if "history" not in st.session_state:
 st.markdown(
     """
     <div class="hero">
-        
+        <div class="hero-badge">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 5V11C4 16 7.5 20.5 12 22C16.5 20.5 20 16 20 11V5L12 2Z" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            AI Verification System
+        </div>
         <h1>Counterfeit 1000&nbsp;BDT Banknote Detection</h1>
         <p>Upload or capture a banknote photo and the model examines its watermark
         security features — the Mujib portrait, the Bangladesh Bank emblem, and the
