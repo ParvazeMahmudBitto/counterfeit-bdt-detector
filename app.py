@@ -21,6 +21,304 @@ st.set_page_config(
 )
 
 
+# -----------------------------------
+# Design System (CSS)
+# -----------------------------------
+# Palette: ink navy + antique gold + verified green + alert crimson,
+# tuned for a currency-security / forensic-verification product.
+
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+    :root{
+        --ink:#0E1524;
+        --panel:#161F33;
+        --panel-border:#28324A;
+        --gold:#C6A15B;
+        --gold-soft:rgba(198,161,91,0.14);
+        --green:#3E8E63;
+        --green-soft:rgba(62,142,99,0.14);
+        --crimson:#B3413A;
+        --crimson-soft:rgba(179,65,58,0.14);
+        --paper:#F1ECDF;
+        --muted:#8C96AC;
+    }
+
+    html, body, [class*="css"]{
+        font-family:'Inter', sans-serif;
+    }
+
+    .stApp{
+        background:
+            radial-gradient(ellipse 900px 500px at 15% -5%, rgba(198,161,91,0.08), transparent 60%),
+            var(--ink);
+        color:var(--paper);
+    }
+
+    #MainMenu, footer{visibility:hidden;}
+    header[data-testid="stHeader"]{background:transparent;}
+
+    .block-container{
+        padding-top:1.5rem;
+        max-width:760px;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero{
+        position:relative;
+        border-radius:14px;
+        padding:2.1rem 1.8rem 1.7rem 1.8rem;
+        margin-bottom:1.6rem;
+        background:
+            repeating-linear-gradient(135deg, rgba(198,161,91,0.055) 0px, rgba(198,161,91,0.055) 1px, transparent 1px, transparent 13px),
+            linear-gradient(160deg, #141C30 0%, #0F1626 100%);
+        border:1px solid var(--panel-border);
+        overflow:hidden;
+    }
+    .hero::after{
+        content:"";
+        position:absolute; top:0; right:0; bottom:0;
+        width:120px;
+        background:linear-gradient(90deg, transparent, rgba(198,161,91,0.10));
+        pointer-events:none;
+    }
+    .hero-badge{
+        display:inline-flex; align-items:center; gap:0.4rem;
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.68rem; letter-spacing:0.11em; text-transform:uppercase;
+        color:var(--gold);
+        background:var(--gold-soft);
+        border:1px solid rgba(198,161,91,0.35);
+        padding:0.28rem 0.65rem;
+        border-radius:100px;
+        margin-bottom:0.9rem;
+    }
+    .hero-badge svg{width:11px; height:11px;}
+    .hero h1{
+        font-family:'Fraunces', serif;
+        font-weight:600;
+        font-size:1.9rem;
+        line-height:1.18;
+        margin:0 0 0.55rem 0;
+        color:var(--paper);
+        letter-spacing:-0.01em;
+    }
+    .hero p{
+        font-size:0.93rem;
+        color:var(--muted);
+        margin:0 0 1.0rem 0;
+        max-width:32rem;
+        line-height:1.5;
+    }
+    .hero-tags{display:flex; flex-wrap:wrap; gap:0.5rem;}
+    .hero-tag{
+        font-size:0.72rem;
+        font-family:'IBM Plex Mono', monospace;
+        color:var(--muted);
+        border:1px solid var(--panel-border);
+        border-radius:6px;
+        padding:0.22rem 0.55rem;
+        background:rgba(255,255,255,0.02);
+    }
+
+    /* ---------- Section labels ---------- */
+    .section-label{
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.72rem;
+        letter-spacing:0.1em;
+        text-transform:uppercase;
+        color:var(--gold);
+        margin:1.7rem 0 0.6rem 0;
+        display:flex; align-items:center; gap:0.5rem;
+    }
+    .section-label::after{
+        content:"";
+        flex:1;
+        height:1px;
+        background:var(--panel-border);
+    }
+
+    /* ---------- Streamlit widget restyle ---------- */
+    div[data-testid="stRadio"] > div{
+        gap:0.6rem;
+    }
+    div[data-testid="stRadio"] label{
+        background:var(--panel);
+        border:1px solid var(--panel-border);
+        padding:0.5rem 0.9rem;
+        border-radius:8px;
+    }
+
+    section[data-testid="stFileUploaderDropzone"], div[data-testid="stCameraInput"]{
+        background:var(--panel) !important;
+        border:1px dashed var(--panel-border) !important;
+        border-radius:12px !important;
+    }
+
+    .stButton>button{
+        width:100%;
+        background:linear-gradient(180deg, #D4B36E, var(--gold));
+        color:#1B1406;
+        font-weight:600;
+        border:none;
+        border-radius:9px;
+        padding:0.65rem 1rem;
+        font-size:0.95rem;
+        transition:transform 0.12s ease, box-shadow 0.12s ease;
+        box-shadow:0 4px 14px rgba(198,161,91,0.18);
+    }
+    .stButton>button:hover{
+        transform:translateY(-1px);
+        box-shadow:0 6px 18px rgba(198,161,91,0.28);
+        color:#1B1406;
+    }
+
+    div[data-testid="stImage"] img{
+        border-radius:10px;
+        border:1px solid var(--panel-border);
+    }
+
+    /* ---------- Verdict card ---------- */
+    .verdict-card{
+        border-radius:14px;
+        padding:1.4rem 1.5rem;
+        margin:0.8rem 0 1.1rem 0;
+        border:1px solid;
+    }
+    .verdict-real{
+        background:var(--green-soft);
+        border-color:rgba(62,142,99,0.45);
+    }
+    .verdict-fake{
+        background:var(--crimson-soft);
+        border-color:rgba(179,65,58,0.45);
+    }
+    .verdict-top{
+        display:flex; align-items:center; justify-content:space-between;
+        margin-bottom:0.9rem;
+    }
+    .verdict-label{
+        font-family:'Fraunces', serif;
+        font-weight:600;
+        font-size:1.35rem;
+    }
+    .verdict-real .verdict-label{color:#7FD6A8;}
+    .verdict-fake .verdict-label{color:#F0958D;}
+    .verdict-sub{
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.72rem;
+        letter-spacing:0.08em;
+        text-transform:uppercase;
+        color:var(--muted);
+        margin-top:0.15rem;
+    }
+    .verdict-confidence-num{
+        font-family:'IBM Plex Mono', monospace;
+        font-size:1.6rem;
+        font-weight:600;
+    }
+    .verdict-real .verdict-confidence-num{color:#7FD6A8;}
+    .verdict-fake .verdict-confidence-num{color:#F0958D;}
+
+    .conf-track{
+        width:100%;
+        height:8px;
+        border-radius:100px;
+        background:rgba(255,255,255,0.08);
+        overflow:hidden;
+    }
+    .conf-fill{
+        height:100%;
+        border-radius:100px;
+    }
+    .verdict-real .conf-fill{background:linear-gradient(90deg, #2E7D5B, #58C48A);}
+    .verdict-fake .conf-fill{background:linear-gradient(90deg, #8E2E29, #D9645B);}
+
+    /* ---------- Explainability card ---------- */
+    .explain-card{
+        background:var(--panel);
+        border:1px solid var(--panel-border);
+        border-radius:12px;
+        padding:1.1rem 1.3rem;
+        margin-top:0.6rem;
+    }
+    .explain-card ul{margin:0; padding-left:1.1rem;}
+    .explain-card li{
+        font-size:0.88rem;
+        color:var(--paper);
+        margin-bottom:0.3rem;
+        line-height:1.45;
+    }
+    .explain-title{
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.72rem;
+        letter-spacing:0.08em;
+        text-transform:uppercase;
+        color:var(--gold);
+        margin-bottom:0.6rem;
+    }
+
+    /* ---------- History table ---------- */
+    .history-card{
+        background:var(--panel);
+        border:1px solid var(--panel-border);
+        border-radius:12px;
+        padding:0.9rem 1.1rem 0.3rem 1.1rem;
+        margin-top:0.5rem;
+    }
+    .history-head{
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.68rem;
+        letter-spacing:0.08em;
+        text-transform:uppercase;
+        color:var(--muted);
+        padding-bottom:0.5rem;
+        border-bottom:1px solid var(--panel-border);
+    }
+    .history-row{
+        font-size:0.86rem;
+        color:var(--paper);
+        padding:0.55rem 0;
+        border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .badge{
+        display:inline-block;
+        font-family:'IBM Plex Mono', monospace;
+        font-size:0.72rem;
+        font-weight:600;
+        padding:0.15rem 0.55rem;
+        border-radius:100px;
+    }
+    .badge-real{background:var(--green-soft); color:#7FD6A8;}
+    .badge-fake{background:var(--crimson-soft); color:#F0958D;}
+
+    .empty-state{
+        text-align:center;
+        color:var(--muted);
+        font-size:0.88rem;
+        padding:1.6rem 0;
+        border:1px dashed var(--panel-border);
+        border-radius:12px;
+        background:var(--panel);
+    }
+
+    .app-footer{
+        text-align:center;
+        color:var(--muted);
+        font-size:0.78rem;
+        margin-top:2.2rem;
+        padding-top:1.2rem;
+        border-top:1px solid var(--panel-border);
+        line-height:1.6;
+    }
+    .app-footer .gold{color:var(--gold);}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # -----------------------------------
 # Load Model
@@ -191,20 +489,31 @@ if "history" not in st.session_state:
 
 
 # -----------------------------------
-# Title
+# Hero / Title
 # -----------------------------------
 
-st.title(
-    "Counterfeit 1000 BDT Banknote Detection"
+st.markdown(
+    """
+    <div class="hero">
+        <div class="hero-badge">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 5V11C4 16 7.5 20.5 12 22C16.5 20.5 20 16 20 11V5L12 2Z" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            AI Verification System
+        </div>
+        <h1>Counterfeit 1000&nbsp;৳ Banknote Detection</h1>
+        <p>Upload or capture a banknote photo and the model examines its watermark
+        security features — the Mujib portrait, the Bangladesh Bank emblem, and the
+        embedded "1000" mark — to verify authenticity.</p>
+        <div class="hero-tags">
+            <span class="hero-tag">EfficientNetB0</span>
+            <span class="hero-tag">Watermark Analysis</span>
+            <span class="hero-tag">Grad-CAM Explainability</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
-
-
-st.write(
-    "CNN-based counterfeit detection using EfficientNetB0"
-)
-
-
-st.divider()
 
 
 
@@ -212,12 +521,15 @@ st.divider()
 # Input Selection
 # -----------------------------------
 
+st.markdown('<div class="section-label">Step 1 — Provide a note image</div>', unsafe_allow_html=True)
+
 option = st.radio(
     "Choose input method:",
     [
         "Upload Image",
         "Use Camera"
-    ]
+    ],
+    label_visibility="collapsed"
 )
 
 
@@ -270,6 +582,8 @@ if uploaded_file is not None:
 )
 
 
+    st.markdown('<div class="section-label">Step 2 — Review the image</div>', unsafe_allow_html=True)
+
     st.image(
         image,
         caption="Uploaded Banknote",
@@ -315,6 +629,8 @@ if uploaded_file is not None:
     result = None
     confidence = None
 
+    st.markdown('<div class="section-label">Step 3 — Run detection</div>', unsafe_allow_html=True)
+
     if st.button(
         "🔍 Detect Banknote"
     ):
@@ -334,12 +650,6 @@ if uploaded_file is not None:
 
 
 
-        st.subheader(
-            "🔍 Detection Result"
-        )
-
-
-
         # According to your trained model:
         # 0 = Fake
         # 1 = Real
@@ -355,11 +665,6 @@ if uploaded_file is not None:
             confidence = probability * 100
 
 
-            st.success(
-                "✅ Genuine Banknote (REAL)"
-            )
-
-
         else:
 
 
@@ -370,24 +675,27 @@ if uploaded_file is not None:
             confidence = (1 - probability) * 100
 
 
-            st.error(
-                "❌ Counterfeit Banknote (FAKE)"
-            )
 
+        verdict_class = "verdict-real" if result == "Real" else "verdict-fake"
+        verdict_icon = "✅" if result == "Real" else "❌"
+        verdict_text = "Genuine Banknote" if result == "Real" else "Counterfeit Banknote"
 
-
-        st.write(
-            "### Confidence Score"
-        )
-
-
-        st.progress(
-            int(confidence)
-        )
-
-
-        st.write(
-            f"**Confidence:** {confidence:.2f}%"
+        st.markdown(
+            f"""
+            <div class="verdict-card {verdict_class}">
+                <div class="verdict-top">
+                    <div>
+                        <div class="verdict-label">{verdict_icon} {verdict_text}</div>
+                        <div class="verdict-sub">Detection Result &nbsp;·&nbsp; {result.upper()}</div>
+                    </div>
+                    <div class="verdict-confidence-num">{confidence:.2f}%</div>
+                </div>
+                <div class="conf-track">
+                    <div class="conf-fill" style="width:{min(confidence, 100):.2f}%;"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
 
@@ -452,7 +760,7 @@ if uploaded_file is not None:
             0
         )
 
-        st.subheader("🧠 CNN Attention Visualization (Grad-CAM)")
+        st.markdown('<div class="section-label">CNN Attention (Grad-CAM)</div>', unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
 
@@ -468,29 +776,34 @@ if uploaded_file is not None:
 
         if result == "Real":
 
-            attention_text = (
-                "CNN attention focused on security regions:\n\n"
-                "✓ Flower print\n"
-                "✓ Bangladesh Bank logo (Watermark)\n"
-                "✓ Watermark text (1000)\n"
-                "✓ Watermark (Mujib Portrait)"
-            )
+            attention_items = [
+                "Flower print",
+                "Bangladesh Bank logo (Watermark)",
+                "Watermark text (1000)",
+                "Watermark (Mujib Portrait)",
+            ]
 
         else:
 
             # Default counterfeit indicators
-            fake_features = (
-                "CNN attention focused on security regions:\n\n"
-                "✓ Unclear Flower print\n"
-                "✓ Blur Bangladesh Bank logo (Watermark)\n"
-                "✓ Font inconsistency Watermark text (1000)\n"
-                "✓ Distorted Portrait Watermark (Mujib Portrait)"
-            )
+            attention_items = [
+                "Unclear Flower print",
+                "Blur Bangladesh Bank logo (Watermark)",
+                "Font inconsistency Watermark text (1000)",
+                "Distorted Portrait Watermark (Mujib Portrait)",
+            ]
 
-            attention_text = fake_features
+        attention_list_html = "".join([f"<li>{item}</li>" for item in attention_items])
 
-
-        st.info(attention_text)
+        st.markdown(
+            f"""
+            <div class="explain-card">
+                <div class="explain-title">CNN attention focused on security regions</div>
+                <ul>{attention_list_html}</ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         
         
         
@@ -522,7 +835,7 @@ if uploaded_file is not None:
 # History Section
 # -----------------------------------
 
-st.divider()
+st.markdown('<div class="section-label">Detection History</div>', unsafe_allow_html=True)
 
 
 
@@ -534,8 +847,8 @@ title_col, delete_col = st.columns(
 
 with title_col:
 
-    st.subheader(
-        "📋Detection History"
+    st.caption(
+        "Every check you run in this session is logged below."
     )
 
 
@@ -622,6 +935,7 @@ if len(st.session_state.history) > 0:
     )
 
 
+    st.markdown('<div class="history-card">', unsafe_allow_html=True)
 
     # Table Header
 
@@ -630,38 +944,28 @@ if len(st.session_state.history) > 0:
     )
 
 
-    h1.write(
-        "No."
-    )
+    with h1:
+        st.markdown('<div class="history-head">No.</div>', unsafe_allow_html=True)
 
 
-    h2.write(
-        "Image"
-    )
+    with h2:
+        st.markdown('<div class="history-head">Image</div>', unsafe_allow_html=True)
 
 
-    h3.write(
-        "Result"
-    )
+    with h3:
+        st.markdown('<div class="history-head">Result</div>', unsafe_allow_html=True)
 
 
-    h4.write(
-        "Confidence"
-    )
+    with h4:
+        st.markdown('<div class="history-head">Confidence</div>', unsafe_allow_html=True)
 
 
-    h5.write(
-        "Date Time"
-    )
+    with h5:
+        st.markdown('<div class="history-head">Date Time</div>', unsafe_allow_html=True)
 
 
-    h6.write(
-        "Action"
-    )
-
-
-
-    st.divider()
+    with h6:
+        st.markdown('<div class="history-head">Action</div>', unsafe_allow_html=True)
 
 
 
@@ -675,57 +979,54 @@ if len(st.session_state.history) > 0:
 
 
 
-        c1.write(
-            index + 1
-        )
+        with c1:
+            st.markdown(f'<div class="history-row">{index + 1}</div>', unsafe_allow_html=True)
 
 
 
-        c2.write(
-            row["image_name"]
-        )
+        with c2:
+            st.markdown(f'<div class="history-row">{row["image_name"]}</div>', unsafe_allow_html=True)
 
 
 
-        c3.write(
-            row["result"]
-        )
+        with c3:
+            badge_class = "badge-real" if row["result"] == "Real" else "badge-fake"
+            st.markdown(f'<div class="history-row"><span class="badge {badge_class}">{row["result"]}</span></div>', unsafe_allow_html=True)
 
 
 
-        c4.write(
-            f'{row["confidence"]:.2f}%'
-        )
+        with c4:
+            st.markdown(f'<div class="history-row">{row["confidence"]:.2f}%</div>', unsafe_allow_html=True)
 
 
 
-        c5.write(
-            row["date_time"]
-        )
+        with c5:
+            st.markdown(f'<div class="history-row">{row["date_time"]}</div>', unsafe_allow_html=True)
 
 
 
-        if c6.button(
-            "🗑️",
-            key=f"delete_{index}"
-        ):
+        with c6:
+            if st.button(
+                "🗑️",
+                key=f"delete_{index}"
+            ):
 
 
 
-            st.session_state.history.pop(
-                index
-            )
+                st.session_state.history.pop(
+                    index
+                )
 
 
-            st.success(
-                "Record deleted successfully"
-            )
+                st.success(
+                    "Record deleted successfully"
+                )
 
 
-            st.rerun()
+                st.rerun()
 
 
-
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
     # -----------------------------------
@@ -766,8 +1067,9 @@ if len(st.session_state.history) > 0:
 else:
 
 
-    st.info(
-        "No detection history available"
+    st.markdown(
+        '<div class="empty-state">No detection history available yet — run a check above to see it logged here.</div>',
+        unsafe_allow_html=True
     )
 
 
@@ -778,10 +1080,11 @@ else:
 # Footer
 # -----------------------------------
 
-st.divider()
-
-
-
-st.caption(
-    "Capstone Project | CNN-Based Approach for Detecting Counterfeit 1000 BDT Banknotes Using Watermark Analysis"
+st.markdown(
+    """
+    <div class="app-footer">
+        Capstone Project &nbsp;·&nbsp; <span class="gold">CNN-Based Approach for Detecting Counterfeit 1000 BDT Banknotes Using Watermark Analysis</span>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
