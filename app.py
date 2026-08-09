@@ -50,11 +50,44 @@ st.markdown(
         font-family:'Inter', sans-serif;
     }
 
+    html, body{
+        background:var(--ink) !important;
+    }
+
     .stApp{
         background:
             radial-gradient(ellipse 900px 500px at 15% -5%, rgba(198,161,91,0.08), transparent 60%),
             var(--ink);
         color:var(--paper);
+    }
+
+    /* ---------- Force readable text everywhere (fixes low-contrast text
+       on mobile browsers / in-app webviews that resolve Streamlit's own
+       light-theme text colors instead of our custom palette) ---------- */
+    p, span, label, li, div, .stMarkdown, .stCaption,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] span,
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stWidgetLabel"] span,
+    [data-testid="stCaptionContainer"],
+    [data-testid="stCaptionContainer"] p,
+    [data-testid="stFileUploaderDropzone"] span,
+    [data-testid="stFileUploaderDropzone"] small,
+    [data-testid="stFileUploaderDropzone"] div,
+    div[data-testid="stRadio"] label p,
+    div[data-testid="stRadio"] label span,
+    div[data-testid="stRadio"] label div{
+        color:var(--paper) !important;
+        -webkit-text-fill-color:var(--paper) !important;
+    }
+    [data-testid="stCaptionContainer"],
+    [data-testid="stCaptionContainer"] p,
+    [data-testid="stFileUploaderDropzone"] small{
+        color:var(--muted) !important;
+        -webkit-text-fill-color:var(--muted) !important;
+    }
+    div[data-testid="stRadio"] input[type="radio"]{
+        accent-color:var(--gold);
     }
 
     #MainMenu, footer{visibility:hidden;}
@@ -157,22 +190,31 @@ st.markdown(
         border-radius:12px !important;
     }
 
-    section[data-testid="stFileUploaderDropzone"] button{
-        background:linear-gradient(180deg, #D4B36E, var(--gold)) !important;
-        color:#1B1406 !important;
-        border:none !important;
+    /* Uploader "Browse/Upload" button — solid gold, dark text, high
+       specificity so it overrides the broad text-color rule above */
+    section[data-testid="stFileUploaderDropzone"] button,
+    section[data-testid="stFileUploaderDropzone"] button[kind],
+    section[data-testid="stFileUploaderDropzone"] [data-testid^="stBaseButton"]{
+        background:#D9B968 !important;
+        border:1px solid #B08B45 !important;
         border-radius:8px !important;
-        font-weight:600 !important;
-        box-shadow:0 3px 10px rgba(198,161,91,0.22);
+        box-shadow:0 3px 10px rgba(198,161,91,0.28) !important;
     }
+    section[data-testid="stFileUploaderDropzone"] button *,
     section[data-testid="stFileUploaderDropzone"] button p,
-    section[data-testid="stFileUploaderDropzone"] button span{
+    section[data-testid="stFileUploaderDropzone"] button span,
+    section[data-testid="stFileUploaderDropzone"] button div{
         color:#1B1406 !important;
         -webkit-text-fill-color:#1B1406 !important;
-        font-weight:600 !important;
+        font-weight:700 !important;
+        opacity:1 !important;
     }
     section[data-testid="stFileUploaderDropzone"] button svg{
         fill:#1B1406 !important;
+        color:#1B1406 !important;
+    }
+    section[data-testid="stFileUploaderDropzone"] button:hover{
+        background:#E8C87A !important;
     }
 
     .stButton>button{
@@ -320,6 +362,64 @@ st.markdown(
         border:1px dashed var(--panel-border);
         border-radius:12px;
         background:var(--panel);
+    }
+
+    /* ---------- Native alert boxes (warning/success/error) ---------- */
+    [data-testid="stAlert"]{
+        background:var(--panel) !important;
+        border:1px solid var(--panel-border) !important;
+        border-radius:10px !important;
+    }
+    [data-testid="stAlert"] p{
+        color:var(--paper) !important;
+        -webkit-text-fill-color:var(--paper) !important;
+    }
+
+    /* ---------- Mobile responsiveness ---------- */
+    @media (max-width: 480px){
+        .block-container{
+            padding-left:0.9rem;
+            padding-right:0.9rem;
+            padding-top:1rem;
+        }
+        .hero{
+            padding:1.5rem 1.2rem 1.3rem 1.2rem;
+        }
+        .hero h1{
+            font-size:1.4rem;
+        }
+        .hero p{
+            font-size:0.85rem;
+        }
+        .hero-badge{
+            font-size:0.6rem;
+        }
+        .hero-tag{
+            font-size:0.66rem;
+        }
+        .section-label{
+            font-size:0.64rem;
+            margin:1.3rem 0 0.5rem 0;
+        }
+        .verdict-card{
+            padding:1.1rem 1.1rem;
+        }
+        .verdict-label{
+            font-size:1.1rem;
+        }
+        .verdict-confidence-num{
+            font-size:1.25rem;
+        }
+        .verdict-top{
+            flex-wrap:wrap;
+            gap:0.5rem;
+        }
+        .history-row, .history-head{
+            font-size:0.76rem;
+        }
+        div[data-testid="stRadio"] label{
+            padding:0.45rem 0.7rem;
+        }
     }
 
     .app-footer{
