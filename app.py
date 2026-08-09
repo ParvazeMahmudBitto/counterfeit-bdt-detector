@@ -480,47 +480,97 @@ def apply_security_region_mask(heatmap, width, height):
 
 # -----------------------------------
 # Auto-Crop: detect the banknote and remove background
-# (same logic as the training notebook, so inference sees the
-# same kind of "note only" image the model was trained on)
+# CamScanner-style: find the note's 4 edges via edge detection
+# and warp-crop to exactly that boundary, no background left.
 # -----------------------------------
+
+def order_points(pts):
+    rect = np.zeros((4, 2), dtype="float32")
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]        # top-left
+    rect[2] = pts[np.argmax(s)]        # bottom-right
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]     # top-right
+    rect[3] = pts[np.argmax(diff)]     # bottom-left
+    return rect
+
+
+def four_point_transform(image, pts):
+    rect = order_points(pts)
+    (tl, tr, br, bl) = rect
+
+    width_a = np.linalg.norm(br - bl)
+    width_b = np.linalg.norm(tr - tl)
+    max_width = max(int(width_a), int(width_b))
+
+    height_a = np.linalg.norm(tr - br)
+    height_b = np.linalg.norm(tl - bl)
+    max_height = max(int(height_a), int(height_b))
+
+    dst = np.array([
+        [0, 0],
+        [max_width - 1, 0],
+        [max_width - 1, max_height - 1],
+        [0, max_height - 1]
+    ], dtype="float32")
+
+    M = cv2.getPerspectiveTransform(rect, dst)
+    warped = cv2.warpPerspective(image, M, (max_width, max_height))
+    return warped
+
 
 def auto_crop_note(pil_image):
 
     img = np.array(pil_image.convert("RGB"))
+    orig = img.copy()
     h, w = img.shape[:2]
 
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    gray_blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, thresh = cv2.threshold(gray_blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Work on a downscaled copy for fast, stable edge detection,
+    # then map the found corners back to full resolution.
+    scale = 700.0 / max(h, w)
+    small = cv2.resize(img, (max(1, int(w * scale)), max(1, int(h * scale))))
 
-    # Sample the border pixels to figure out whether the background
-    # is dark or light, then keep the opposite side as the note.
-    border = np.concatenate([
-        gray[0:5, :].flatten(), gray[-5:, :].flatten(),
-        gray[:, 0:5].flatten(), gray[:, -5:].flatten()
-    ])
-    border_mean = border.mean()
-    mask = thresh if border_mean < 127 else cv2.bitwise_not(thresh)
+    gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blur, 30, 100)
+    edges = cv2.dilate(edges, np.ones((5, 5), np.uint8), iterations=2)
+    edges = cv2.erode(edges, np.ones((5, 5), np.uint8), iterations=1)
 
-    kernel = np.ones((15, 15), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return pil_image
 
-    largest = max(contours, key=cv2.contourArea)
-    # If the detected region looks unreliable (too small), don't risk a bad crop
-    if cv2.contourArea(largest) < 0.05 * h * w:
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
+    small_area = small.shape[0] * small.shape[1]
+
+    note_quad = None
+    for c in contours:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+        if len(approx) == 4 and cv2.contourArea(approx) > 0.15 * small_area:
+            note_quad = approx
+            break
+
+    if note_quad is not None:
+        # Found a clean 4-corner note boundary -> perspective-warp crop (tight, no background)
+        pts = note_quad.reshape(4, 2).astype("float32") / scale
+        warped = four_point_transform(orig, pts)
+        if warped.size == 0:
+            return pil_image
+        return Image.fromarray(warped)
+
+    # Fallback: no clean quadrilateral found, use the largest edge-contour's bounding box
+    largest = contours[0]
+    if cv2.contourArea(largest) < 0.05 * small_area:
         return pil_image
 
     x, y, cw, ch = cv2.boundingRect(largest)
-    pad_x, pad_y = int(cw * 0.04), int(ch * 0.04)
+    x, y, cw, ch = [int(v / scale) for v in (x, y, cw, ch)]
+    pad_x, pad_y = int(cw * 0.02), int(ch * 0.02)
     x0, y0 = max(0, x - pad_x), max(0, y - pad_y)
     x1, y1 = min(w, x + cw + pad_x), min(h, y + ch + pad_y)
 
-    cropped = img[y0:y1, x0:x1]
+    cropped = orig[y0:y1, x0:x1]
     if cropped.size == 0:
         return pil_image
 
