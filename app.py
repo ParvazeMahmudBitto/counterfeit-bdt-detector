@@ -440,11 +440,20 @@ def apply_security_region_mask(heatmap, width, height):
 
     mask = np.zeros((height, width), dtype=np.float32)
 
-    # Flower print + Bangladesh Bank logo watermark
+    # Flower print
     cv2.rectangle(
         mask,
-        (int(width*0.08), int(height*0.30)),
-        (int(width*0.38), int(height*0.62)),
+        (int(width*0.096), int(height*0.380)),
+        (int(width*0.275), int(height*0.536)),
+        1,
+        -1
+    )
+
+    # Bangladesh Bank logo (Watermark)
+    cv2.rectangle(
+        mask,
+        (int(width*0.294), int(height*0.317)),
+        (int(width*0.458), int(height*0.473)),
         1,
         -1
     )
@@ -452,8 +461,8 @@ def apply_security_region_mask(heatmap, width, height):
     # Mujib portrait watermark
     cv2.rectangle(
         mask,
-        (int(width*0.45), int(height*0.20)),
-        (int(width*0.78), int(height*0.72)),
+        (int(width*0.465), int(height*0.311)),
+        (int(width*0.738), int(height*0.637)),
         1,
         -1
     )
@@ -461,16 +470,16 @@ def apply_security_region_mask(heatmap, width, height):
     # Watermark text (1000)
     cv2.rectangle(
         mask,
-        (int(width*0.38), int(height*0.68)),
-        (int(width*0.80), int(height*0.88)),
+        (int(width*0.435), int(height*0.685)),
+        (int(width*0.757), int(height*0.776)),
         1,
         -1
     )
 
-    # Soft edges
+    # Soft edges (small blur so it doesn't bleed outside the 4 marked regions)
     mask = cv2.GaussianBlur(
         mask,
-        (51,51),
+        (15,15),
         0
     )
 
