@@ -999,7 +999,7 @@ st.markdown(
         </div>
         <h1>Counterfeit 1000&nbsp;BDT Banknote Detection</h1>
         <p>Upload or capture a banknote photo and the model examines its watermark
-        security features — the Mujib portrait,Flower print,the Bangladesh Bank emblem and the
+        security features - the Mujib portrait,Flower print,the Bangladesh Bank emblem and the
         embedded "1000" mark to verify authenticity.</p>
         <div class="hero-tags">
             <span class="hero-tag">EfficientNetB0</span>
