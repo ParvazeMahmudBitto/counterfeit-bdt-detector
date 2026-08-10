@@ -31,6 +31,7 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap');
     :root{
         --bg:#07110F;
         --bg-2:#0A1714;
@@ -188,10 +189,10 @@ st.markdown(
         z-index:2;
         max-width:650px;
         margin:0 0 0.7rem 0;
-        font-family:Georgia, "Times New Roman", serif;
+        font-family:"Montserrat", sans-serif;
         color:var(--text);
         font-size:2.15rem;
-        font-weight:700;
+        font-weight:600;
         line-height:1.12;
         letter-spacing:-0.025em;
     }
