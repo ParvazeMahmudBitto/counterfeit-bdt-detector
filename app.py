@@ -8,6 +8,7 @@ from datetime import datetime
 import cv2
 import base64
 from io import BytesIO
+import hashlib
 
 
 
@@ -353,109 +354,6 @@ st.markdown(
     div[data-testid="stCameraInput"]{
         border-radius:16px;
         overflow:hidden;
-    }
-
-    /* ---------- Camera: Take Photo button ---------- */
-    /* Make Streamlit's camera capture button clearly visible on mobile/desktop */
-    div[data-testid="stCameraInput"] button,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"],
-    div[data-testid="stCameraInput"] button[kind="primary"]{
-        width:100% !important;
-        min-height:52px !important;
-        margin-top:0.35rem !important;
-
-        border:2px solid #F0D98F !important;
-        border-radius:12px !important;
-
-        background:
-            linear-gradient(180deg, #F3D77D 0%, #D8B760 55%, #C69E43 100%) !important;
-
-        color:#102019 !important;
-        -webkit-text-fill-color:#102019 !important;
-
-        font-size:0.98rem !important;
-        font-weight:900 !important;
-        letter-spacing:0.02em !important;
-
-        box-shadow:
-            0 8px 22px rgba(216,183,96,0.28),
-            0 0 0 1px rgba(240,217,143,0.10) !important;
-
-        opacity:1 !important;
-
-        transition:
-            transform .16s ease,
-            box-shadow .16s ease,
-            filter .16s ease !important;
-    }
-
-    /* Force all inner text/icons to be visible */
-    div[data-testid="stCameraInput"] button *,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"] *,
-    div[data-testid="stCameraInput"] button p,
-    div[data-testid="stCameraInput"] button span,
-    div[data-testid="stCameraInput"] button div{
-        color:#102019 !important;
-        -webkit-text-fill-color:#102019 !important;
-        fill:#102019 !important;
-        stroke:#102019 !important;
-
-        font-weight:900 !important;
-        opacity:1 !important;
-    }
-
-    /* Hover / touch feedback */
-    div[data-testid="stCameraInput"] button:hover,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:hover{
-        transform:translateY(-1px) !important;
-
-        background:
-            linear-gradient(180deg, #FFE79A 0%, #E3C56F 55%, #D0AA4D 100%) !important;
-
-        border-color:#FFE79A !important;
-
-        box-shadow:
-            0 11px 28px rgba(216,183,96,0.36),
-            0 0 20px rgba(216,183,96,0.18) !important;
-
-        filter:brightness(1.03) !important;
-    }
-
-    div[data-testid="stCameraInput"] button:active,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:active{
-        transform:translateY(0) scale(0.995) !important;
-    }
-
-    /* Streamlit sometimes applies a disabled-looking white style before capture.
-       Keep the label readable even in that state. */
-    div[data-testid="stCameraInput"] button:disabled,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:disabled{
-        background:
-            linear-gradient(180deg, #E6CF82 0%, #CFAE57 100%) !important;
-
-        border-color:#E6CF82 !important;
-
-        color:#102019 !important;
-        -webkit-text-fill-color:#102019 !important;
-
-        opacity:0.78 !important;
-        cursor:not-allowed !important;
-    }
-
-    div[data-testid="stCameraInput"] button:disabled *,
-    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:disabled *{
-        color:#102019 !important;
-        -webkit-text-fill-color:#102019 !important;
-        opacity:1 !important;
-    }
-
-    @media (max-width:640px){
-        div[data-testid="stCameraInput"] button,
-        div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]{
-            min-height:54px !important;
-            font-size:1rem !important;
-            border-radius:11px !important;
-        }
     }
 
     /* ---------- Buttons ---------- */
@@ -1313,287 +1211,6 @@ with st.expander("Demo Note", expanded=False):
         )
 
 
-
-# -----------------------------------
-# 1000 BDT Banknote Input Validation
-# -----------------------------------
-# This guard runs BEFORE the Real/Fake classifier.
-# It compares the uploaded image with the two embedded 1000 BDT
-# reference examples (Real/Fake Demo Note) using:
-#   1) local visual feature matching (ORB + geometric consistency)
-#   2) banknote colour-profile similarity
-#
-# No new package is required; OpenCV is already used by this app.
-
-def _resize_for_note_validation(img_bgr, max_side=900):
-    h, w = img_bgr.shape[:2]
-
-    if max(h, w) <= max_side:
-        return img_bgr
-
-    scale = max_side / float(max(h, w))
-
-    return cv2.resize(
-        img_bgr,
-        (
-            max(1, int(w * scale)),
-            max(1, int(h * scale))
-        ),
-        interpolation=cv2.INTER_AREA
-    )
-
-
-def _note_colour_histogram(img_bgr):
-    hsv = cv2.cvtColor(
-        img_bgr,
-        cv2.COLOR_BGR2HSV
-    )
-
-    hist = cv2.calcHist(
-        [hsv],
-        [0, 1],
-        None,
-        [30, 32],
-        [0, 180, 0, 256]
-    )
-
-    cv2.normalize(
-        hist,
-        hist,
-        0,
-        1,
-        cv2.NORM_MINMAX
-    )
-
-    return hist
-
-
-@st.cache_resource
-def _load_1000_bdt_reference_features():
-
-    orb = cv2.ORB_create(
-        nfeatures=2000,
-        scaleFactor=1.2,
-        nlevels=8,
-        edgeThreshold=15,
-        fastThreshold=10
-    )
-
-    references = []
-
-    for demo_b64 in [
-        REAL_DEMO_NOTE_B64,
-        FAKE_DEMO_NOTE_B64
-    ]:
-
-        demo_pil = Image.open(
-            BytesIO(
-                base64.b64decode(
-                    demo_b64
-                )
-            )
-        ).convert("RGB")
-
-        demo_bgr = cv2.cvtColor(
-            np.array(demo_pil),
-            cv2.COLOR_RGB2BGR
-        )
-
-        demo_bgr = _resize_for_note_validation(
-            demo_bgr
-        )
-
-        demo_gray = cv2.cvtColor(
-            demo_bgr,
-            cv2.COLOR_BGR2GRAY
-        )
-
-        keypoints, descriptors = orb.detectAndCompute(
-            demo_gray,
-            None
-        )
-
-        keypoint_xy = np.float32(
-            [kp.pt for kp in keypoints]
-        ) if keypoints else np.empty(
-            (0, 2),
-            dtype=np.float32
-        )
-
-        references.append(
-            {
-                "hist": _note_colour_histogram(
-                    demo_bgr
-                ),
-                "points": keypoint_xy,
-                "descriptors": descriptors
-            }
-        )
-
-    return references
-
-
-def is_supported_1000_bdt_note(pil_image):
-
-    try:
-
-        query_rgb = pil_image.convert(
-            "RGB"
-        )
-
-        query_bgr = cv2.cvtColor(
-            np.array(query_rgb),
-            cv2.COLOR_RGB2BGR
-        )
-
-        query_bgr = _resize_for_note_validation(
-            query_bgr
-        )
-
-        # Extremely tiny images do not contain enough banknote detail.
-        if (
-            query_bgr.shape[0] < 120
-            or query_bgr.shape[1] < 120
-        ):
-            return False
-
-        query_hist = _note_colour_histogram(
-            query_bgr
-        )
-
-        query_gray = cv2.cvtColor(
-            query_bgr,
-            cv2.COLOR_BGR2GRAY
-        )
-
-        orb = cv2.ORB_create(
-            nfeatures=2000,
-            scaleFactor=1.2,
-            nlevels=8,
-            edgeThreshold=15,
-            fastThreshold=10
-        )
-
-        query_keypoints, query_descriptors = orb.detectAndCompute(
-            query_gray,
-            None
-        )
-
-        if (
-            query_descriptors is None
-            or query_keypoints is None
-            or len(query_keypoints) < 12
-        ):
-            return False
-
-        query_points = np.float32(
-            [kp.pt for kp in query_keypoints]
-        )
-
-        matcher = cv2.BFMatcher(
-            cv2.NORM_HAMMING
-        )
-
-        references = _load_1000_bdt_reference_features()
-
-        for ref in references:
-
-            ref_descriptors = ref["descriptors"]
-            ref_points = ref["points"]
-
-            if (
-                ref_descriptors is None
-                or len(ref_descriptors) < 2
-            ):
-                continue
-
-            # Colour similarity with a known 1000 BDT reference.
-            colour_similarity = cv2.compareHist(
-                query_hist,
-                ref["hist"],
-                cv2.HISTCMP_CORREL
-            )
-
-            matches = matcher.knnMatch(
-                query_descriptors,
-                ref_descriptors,
-                k=2
-            )
-
-            good_matches = []
-
-            for pair in matches:
-
-                if len(pair) < 2:
-                    continue
-
-                m, n = pair
-
-                if m.distance < 0.75 * n.distance:
-                    good_matches.append(
-                        m
-                    )
-
-            inlier_count = 0
-
-            # Confirm that matched details also have a consistent
-            # geometric arrangement, reducing accidental matches.
-            if len(good_matches) >= 8:
-
-                src_pts = np.float32(
-                    [
-                        query_points[m.queryIdx]
-                        for m in good_matches
-                    ]
-                ).reshape(
-                    -1,
-                    1,
-                    2
-                )
-
-                dst_pts = np.float32(
-                    [
-                        ref_points[m.trainIdx]
-                        for m in good_matches
-                    ]
-                ).reshape(
-                    -1,
-                    1,
-                    2
-                )
-
-                _, inlier_mask = cv2.findHomography(
-                    src_pts,
-                    dst_pts,
-                    cv2.RANSAC,
-                    5.0
-                )
-
-                if inlier_mask is not None:
-
-                    inlier_count = int(
-                        inlier_mask.sum()
-                    )
-
-            # A supported input should resemble the visual layout and
-            # colour profile of the 1000 BDT watermark-area examples.
-            if (
-                colour_similarity >= 0.16
-                and len(good_matches) >= 18
-                and inlier_count >= 8
-            ):
-                return True
-
-        return False
-
-    except Exception:
-
-        # If validation cannot confidently verify the input,
-        # fail safely and do not send it to the Real/Fake classifier.
-        return False
-
-
-
 # -----------------------------------
 # Input Selection
 # -----------------------------------
@@ -1659,32 +1276,6 @@ if uploaded_file is not None:
 )
 
 
-    # -----------------------------------
-    # Validate Supported Input
-    # -----------------------------------
-    # The Real/Fake model was trained for the 1000 BDT banknote
-    # watermark/security-feature area. Reject unrelated images before
-    # they reach the classifier.
-
-    if not is_supported_1000_bdt_note(
-        image
-    ):
-
-        st.warning(
-            "⚠️ Unsupported image detected. "
-            "Please upload or capture an image of the 1000 BDT banknote "
-            "watermark/security-feature area, similar to the examples shown in Demo Note."
-        )
-
-        st.info(
-            "💡 Open **Demo Note** above and use the Real/Fake example images as a guide. "
-            "Other photos, screenshots, documents, objects or others banknote images "
-            "cannot be analyzed by this model."
-        )
-
-        st.stop()
-
-
     st.markdown('<div class="section-label">Step 2 — Review the image</div>', unsafe_allow_html=True)
 
     st.image(
@@ -1732,11 +1323,11 @@ if uploaded_file is not None:
     result = None
     confidence = None
 
-    st.markdown('<div class="section-label">Step 3 — Run detection</div>', unsafe_allow_html=True)
-
-    if st.button(
-        "🔍 Detect Banknote"
-    ):
+    # -----------------------------------
+    # Auto Detection
+    # -----------------------------------
+    # A valid uploaded/captured image is analyzed immediately.
+    if True:
 
 
         prediction = model.predict(
@@ -1868,7 +1459,7 @@ if uploaded_file is not None:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.image(original_img, caption="Original Banknote", use_container_width=True)
+            st.image(original_img, caption="Uploaded Banknote", use_container_width=True)
 
         with col2:
             st.image(superimposed_img, caption="Security Feature Focused Grad-CAM", use_container_width=True)
@@ -1912,7 +1503,13 @@ if uploaded_file is not None:
         
                 
         # Save to current session only
-        if result is not None:
+        # Prevent duplicate history entries if Streamlit reruns with the same image.
+        image_signature = hashlib.md5(image.tobytes()).hexdigest()
+
+        if (
+            result is not None
+            and st.session_state.get("last_auto_detect_signature") != image_signature
+        ):
 
             st.session_state.history.append(
                 {
@@ -1931,6 +1528,8 @@ if uploaded_file is not None:
                     )
                 }
             )
+
+            st.session_state.last_auto_detect_signature = image_signature
 
 
 
