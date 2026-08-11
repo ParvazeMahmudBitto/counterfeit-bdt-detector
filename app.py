@@ -1309,6 +1309,371 @@ with st.expander("Demo Note", expanded=False):
         )
 
 
+
+# -----------------------------------
+# 1000 BDT Dataset-Like Input Guard
+# -----------------------------------
+# The Real/Fake classifier is binary, so without an explicit guard it can
+# assign "Real" or "Fake" even to unrelated images. This validation step
+# checks whether an uploaded/captured image visually resembles the 1000 BDT
+# watermark-area examples used by this project.
+#
+# IMPORTANT:
+# The 0.40 value below is an INPUT-COMPATIBILITY similarity threshold.
+# It is separate from the model's existing Real/Fake decision threshold.
+#
+# Similarity combines:
+#   1) HSV colour-profile similarity
+#   2) ORB local-feature similarity
+#   3) RANSAC geometric consistency of matched banknote details
+#
+# The two embedded Demo Note images are used as reference representatives,
+# so no additional deployment file or package is required.
+
+REFERENCE_SIMILARITY_THRESHOLD = 0.40
+
+
+def _resize_for_input_guard(img_bgr, max_side=900):
+    """Resize only for fast validation; preserve aspect ratio."""
+    height, width = img_bgr.shape[:2]
+
+    if max(height, width) <= max_side:
+        return img_bgr
+
+    scale = max_side / float(max(height, width))
+
+    return cv2.resize(
+        img_bgr,
+        (
+            max(1, int(width * scale)),
+            max(1, int(height * scale))
+        ),
+        interpolation=cv2.INTER_AREA
+    )
+
+
+def _build_hsv_histogram(img_bgr):
+    """Colour signature that is reasonably tolerant to brightness changes."""
+    hsv = cv2.cvtColor(
+        img_bgr,
+        cv2.COLOR_BGR2HSV
+    )
+
+    hist = cv2.calcHist(
+        [hsv],
+        [0, 1],
+        None,
+        [30, 32],
+        [0, 180, 0, 256]
+    )
+
+    cv2.normalize(
+        hist,
+        hist,
+        0,
+        1,
+        cv2.NORM_MINMAX
+    )
+
+    return hist
+
+
+def _make_orb():
+    return cv2.ORB_create(
+        nfeatures=2500,
+        scaleFactor=1.2,
+        nlevels=8,
+        edgeThreshold=15,
+        fastThreshold=10
+    )
+
+
+@st.cache_resource
+def _load_1000_bdt_reference_signatures():
+    """
+    Prepare signatures once from the two embedded Demo Note images.
+    Both genuine and counterfeit examples are accepted as supported
+    1000 BDT inputs; authenticity is decided later by the CNN.
+    """
+    orb = _make_orb()
+    references = []
+
+    for demo_b64 in [
+        REAL_DEMO_NOTE_B64,
+        FAKE_DEMO_NOTE_B64
+    ]:
+        demo_image = Image.open(
+            BytesIO(
+                base64.b64decode(
+                    demo_b64
+                )
+            )
+        ).convert("RGB")
+
+        demo_bgr = cv2.cvtColor(
+            np.array(demo_image),
+            cv2.COLOR_RGB2BGR
+        )
+
+        demo_bgr = _resize_for_input_guard(
+            demo_bgr
+        )
+
+        demo_gray = cv2.cvtColor(
+            demo_bgr,
+            cv2.COLOR_BGR2GRAY
+        )
+
+        keypoints, descriptors = orb.detectAndCompute(
+            demo_gray,
+            None
+        )
+
+        points = (
+            np.float32(
+                [kp.pt for kp in keypoints]
+            )
+            if keypoints
+            else np.empty(
+                (0, 2),
+                dtype=np.float32
+            )
+        )
+
+        references.append(
+            {
+                "hist": _build_hsv_histogram(
+                    demo_bgr
+                ),
+                "points": points,
+                "descriptors": descriptors
+            }
+        )
+
+    return references
+
+
+def _score_against_1000_bdt_reference(
+    query_hist,
+    query_points,
+    query_descriptors,
+    reference
+):
+    """
+    Return a normalized 0..1 compatibility score.
+
+    The geometric component has the largest weight so an unrelated image
+    cannot pass simply because its overall colours happen to be similar.
+    """
+    ref_descriptors = reference["descriptors"]
+    ref_points = reference["points"]
+
+    if (
+        query_descriptors is None
+        or ref_descriptors is None
+        or len(query_descriptors) < 2
+        or len(ref_descriptors) < 2
+    ):
+        return 0.0
+
+    # 1) Colour similarity
+    colour_corr = cv2.compareHist(
+        query_hist,
+        reference["hist"],
+        cv2.HISTCMP_CORREL
+    )
+
+    # Negative correlation should not contribute positively.
+    colour_score = float(
+        np.clip(
+            colour_corr,
+            0.0,
+            1.0
+        )
+    )
+
+    # 2) ORB local-feature matching
+    matcher = cv2.BFMatcher(
+        cv2.NORM_HAMMING
+    )
+
+    try:
+        raw_matches = matcher.knnMatch(
+            query_descriptors,
+            ref_descriptors,
+            k=2
+        )
+    except cv2.error:
+        return 0.0
+
+    good_matches = []
+
+    for pair in raw_matches:
+        if len(pair) < 2:
+            continue
+
+        first, second = pair
+
+        # Lowe ratio test: keep distinctive local matches only.
+        if first.distance < 0.75 * second.distance:
+            good_matches.append(
+                first
+            )
+
+    # Saturate around 80 reliable local matches.
+    feature_score = min(
+        len(good_matches) / 80.0,
+        1.0
+    )
+
+    # 3) Geometric consistency
+    # A valid 1000 BDT crop should have several matching details arranged
+    # in a consistent spatial relationship, unlike a random photo/screenshot.
+    inlier_count = 0
+
+    if len(good_matches) >= 8:
+        src_points = np.float32(
+            [
+                query_points[m.queryIdx]
+                for m in good_matches
+            ]
+        ).reshape(
+            -1,
+            1,
+            2
+        )
+
+        dst_points = np.float32(
+            [
+                ref_points[m.trainIdx]
+                for m in good_matches
+            ]
+        ).reshape(
+            -1,
+            1,
+            2
+        )
+
+        try:
+            _, inlier_mask = cv2.findHomography(
+                src_points,
+                dst_points,
+                cv2.RANSAC,
+                5.0
+            )
+
+            if inlier_mask is not None:
+                inlier_count = int(
+                    inlier_mask.sum()
+                )
+
+        except cv2.error:
+            inlier_count = 0
+
+    # Saturate around 20 geometrically consistent matches.
+    geometry_score = min(
+        inlier_count / 20.0,
+        1.0
+    )
+
+    # Geometry is deliberately weighted highest to reject unrelated images.
+    combined_score = (
+        0.20 * colour_score
+        + 0.35 * feature_score
+        + 0.45 * geometry_score
+    )
+
+    return float(
+        np.clip(
+            combined_score,
+            0.0,
+            1.0
+        )
+    )
+
+
+def validate_1000_bdt_input(pil_image):
+    """
+    Returns:
+        (is_supported, best_similarity)
+
+    A score >= 0.40 is treated as sufficiently dataset-like for this app.
+    The CNN still decides Real/Fake afterward using its existing threshold.
+    """
+    try:
+        query_rgb = pil_image.convert(
+            "RGB"
+        )
+
+        query_bgr = cv2.cvtColor(
+            np.array(query_rgb),
+            cv2.COLOR_RGB2BGR
+        )
+
+        query_bgr = _resize_for_input_guard(
+            query_bgr
+        )
+
+        height, width = query_bgr.shape[:2]
+
+        # Very small images do not carry enough banknote detail.
+        if height < 120 or width < 120:
+            return False, 0.0
+
+        query_gray = cv2.cvtColor(
+            query_bgr,
+            cv2.COLOR_BGR2GRAY
+        )
+
+        orb = _make_orb()
+
+        query_keypoints, query_descriptors = orb.detectAndCompute(
+            query_gray,
+            None
+        )
+
+        if (
+            query_keypoints is None
+            or query_descriptors is None
+            or len(query_keypoints) < 12
+        ):
+            return False, 0.0
+
+        query_points = np.float32(
+            [kp.pt for kp in query_keypoints]
+        )
+
+        query_hist = _build_hsv_histogram(
+            query_bgr
+        )
+
+        best_similarity = 0.0
+
+        for reference in _load_1000_bdt_reference_signatures():
+            score = _score_against_1000_bdt_reference(
+                query_hist,
+                query_points,
+                query_descriptors,
+                reference
+            )
+
+            best_similarity = max(
+                best_similarity,
+                score
+            )
+
+        return (
+            best_similarity >= REFERENCE_SIMILARITY_THRESHOLD,
+            best_similarity
+        )
+
+    except Exception:
+        # Fail safely: if compatibility cannot be established,
+        # do not allow the binary Real/Fake classifier to run.
+        return False, 0.0
+
+
+
 # -----------------------------------
 # Input Selection
 # -----------------------------------
@@ -1372,6 +1737,34 @@ if uploaded_file is not None:
     image = ImageOps.exif_transpose(
      image
 )
+
+
+    # -----------------------------------
+    # Validate 1000 BDT / Dataset-Like Input
+    # -----------------------------------
+    # This guard runs before the binary Real/Fake classifier so unsupported
+    # photos, screenshots, documents, objects, or other banknotes do not get
+    # a misleading Genuine/Counterfeit result.
+
+    input_is_supported, input_similarity = validate_1000_bdt_input(
+        image
+    )
+
+    if not input_is_supported:
+
+        st.warning(
+            "⚠️ Unsupported image detected. "
+            "This system accepts only 1000 BDT banknote images similar to "
+            "the watermark/security-feature images used in the project dataset."
+        )
+
+        st.info(
+            "💡 Please upload or capture the 1000 BDT watermark area like the "
+            "**Demo Note** examples above. Keep the Mujib portrait, flower print, "
+            "Bangladesh Bank watermark/emblem and the embedded 1000 mark visible."
+        )
+
+        st.stop()
 
 
     st.markdown('<div class="section-label">Step 2 — Review the image</div>', unsafe_allow_html=True)
