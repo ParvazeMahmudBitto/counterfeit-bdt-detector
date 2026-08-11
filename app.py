@@ -356,6 +356,104 @@ st.markdown(
         overflow:hidden;
     }
 
+    /* ---------- Camera / Take Photo button only ---------- */
+    /* Make Streamlit camera capture control clearly visible, especially on mobile */
+    div[data-testid="stCameraInput"] button,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]{
+        width:100% !important;
+        min-height:54px !important;
+        margin-top:0.35rem !important;
+        border:2px solid #F0D98F !important;
+        border-radius:12px !important;
+        background:linear-gradient(
+            180deg,
+            #F5DC83 0%,
+            #D8B760 58%,
+            #C39C42 100%
+        ) !important;
+        color:#0B1713 !important;
+        -webkit-text-fill-color:#0B1713 !important;
+        font-size:1rem !important;
+        font-weight:900 !important;
+        letter-spacing:0.025em !important;
+        opacity:1 !important;
+        box-shadow:
+            0 7px 18px rgba(216,183,96,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.34) !important;
+        transition:
+            transform .16s ease,
+            filter .16s ease,
+            box-shadow .16s ease !important;
+    }
+
+    /* Force the Take Photo label and icon to stay dark and readable */
+    div[data-testid="stCameraInput"] button *,
+    div[data-testid="stCameraInput"] button p,
+    div[data-testid="stCameraInput"] button span,
+    div[data-testid="stCameraInput"] button div,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"] *{
+        color:#0B1713 !important;
+        -webkit-text-fill-color:#0B1713 !important;
+        fill:#0B1713 !important;
+        stroke:#0B1713 !important;
+        font-weight:900 !important;
+        opacity:1 !important;
+    }
+
+    div[data-testid="stCameraInput"] button:hover,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:hover{
+        transform:translateY(-1px) !important;
+        filter:brightness(1.06) !important;
+        border-color:#FFE59A !important;
+        background:linear-gradient(
+            180deg,
+            #FFE89A 0%,
+            #E3C56E 58%,
+            #CDA84C 100%
+        ) !important;
+        box-shadow:
+            0 10px 24px rgba(216,183,96,0.36),
+            0 0 0 3px rgba(216,183,96,0.08) !important;
+    }
+
+    div[data-testid="stCameraInput"] button:active,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:active{
+        transform:translateY(0) scale(0.995) !important;
+    }
+
+    /* Streamlit may render the capture button in a disabled/white-looking state
+       before the camera is fully ready. Keep the label visible there too. */
+    div[data-testid="stCameraInput"] button:disabled,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:disabled{
+        background:linear-gradient(
+            180deg,
+            #E8D58F 0%,
+            #CDAE5E 100%
+        ) !important;
+        border-color:#DCC477 !important;
+        color:#0B1713 !important;
+        -webkit-text-fill-color:#0B1713 !important;
+        opacity:0.92 !important;
+    }
+
+    div[data-testid="stCameraInput"] button:disabled *,
+    div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]:disabled *{
+        color:#0B1713 !important;
+        -webkit-text-fill-color:#0B1713 !important;
+        fill:#0B1713 !important;
+        stroke:#0B1713 !important;
+        opacity:1 !important;
+    }
+
+    @media (max-width:640px){
+        div[data-testid="stCameraInput"] button,
+        div[data-testid="stCameraInput"] [data-testid^="stBaseButton"]{
+            min-height:56px !important;
+            font-size:1.02rem !important;
+            border-radius:11px !important;
+        }
+    }
+
     /* ---------- Buttons ---------- */
     .stButton > button{
         width:100%;
