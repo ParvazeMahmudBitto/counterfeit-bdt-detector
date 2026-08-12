@@ -1753,8 +1753,8 @@ if uploaded_file is not None:
     if not input_is_supported:
 
         st.warning(
-            "⚠️ Unsupported image detected. "
-            "This system accepts only 1000 BDT banknote images similar to "
+            
+            "⚠️This system accepts only 1000 BDT banknote images similar to "
             "the watermark/security-feature images used in the project dataset."
         )
 
