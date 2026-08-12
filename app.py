@@ -1754,8 +1754,8 @@ if uploaded_file is not None:
 
         st.warning(
             
-            "⚠️This system accepts only 1000 BDT banknote images similar to "
-            "the watermark/security-feature images used in the project dataset."
+            "⚠️ Please upload an image of a 1000 BDT banknote only."
+            
         )
 
         st.info(
